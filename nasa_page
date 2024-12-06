@@ -1,0 +1,34 @@
+import requests
+
+def get_wikipedia_content(page_title):
+    base_url = "https://en.wikipedia.org/w/api.php"
+    params = {
+        "action": "query",
+        "format": "json",
+        "prop": "extracts",
+        "titles": page_title,
+        "exintro": True,  # Get only the introductory section
+        "explaintext": True  # Get plain text instead of HTML
+    }
+
+    try:
+        response = requests.get(base_url, params=params)
+        response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
+        data = response.json()
+
+        # Check if the page exists
+        pages = data.get("query", {}).get("pages", {})
+        if not pages:
+            return "Page not found."
+
+        page_id = next(iter(pages))  # Get the first page ID
+        content = pages[page_id].get("extract", "No content available.")
+        
+        return content
+
+    except requests.exceptions.RequestException as e:
+        return f"An error occurred: {e}"
+
+# Fetch content of NASA Wikipedia page
+nasa_content = get_wikipedia_content("NASA")
+print(nasa_content)
