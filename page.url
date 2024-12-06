@@ -1,0 +1,62 @@
+import requests
+import sqlite3
+
+# Function to fetch page URL from Wikipedia API
+def fetch_page_url(page_title):
+    url = f"https://en.wikipedia.org/w/api.php?action=query&titles={page_title}&prop=info&format=json"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        pages = data.get('query', {}).get('pages', {})
+        
+        for page_id, page_info in pages.items():
+            title = page_info.get('title', 'N/A')
+            fullurl = page_info.get('fullurl', 'N/A')
+            return title, fullurl
+    else:
+        print(f"Error: Unable to fetch URL for {page_title}")
+        return None, None
+
+# Function to save the page title and URL to SQLite database
+def save_page_url_to_db(title, url):
+    # Connect to SQLite database (or create it)
+    conn = sqlite3.connect('wikipedia_pages.db')
+    cursor = conn.cursor()
+
+    # Create the table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pages (
+            title TEXT PRIMARY KEY,
+            url TEXT
+        )
+    ''')
+
+    # Insert the page title and URL into the table
+    cursor.execute('''
+        INSERT OR REPLACE INTO pages (title, url)
+        VALUES (?, ?)
+    ''', (title, url))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+# Main function to fetch and save page URL
+def main():
+    # Define the page title you want to fetch
+    page_title = "Python_(programming_language)"  # Change this to any Wikipedia page title
+
+    # Fetch page URL from Wikipedia API
+    title, url = fetch_page_url(page_title)
+
+    if title and url:
+        # Save the fetched page data to the database
+        save_page_url_to_db(title, url)
+        print(f"Page URL for '{title}' saved successfully!")
+    else:
+        print("Failed to fetch or save page URL.")
+
+# Run the script
+if __name__ == "__main__":
+    main()
