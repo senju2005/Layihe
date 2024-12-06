@@ -1,0 +1,44 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+
+def save_element_screenshot(driver, element_locator, file_name):
+    try:
+        # Wait for the element to be visible
+        element = WebDriverWait(driver, 10).until(EC.visibility_of_element_located(element_locator))
+        # Take a screenshot of the element
+        element.screenshot(file_name)
+        print(f"Screenshot saved as {file_name}")
+    except Exception as e:
+        print(f"Error capturing screenshot for {element_locator}: {e}")
+
+def main():
+    # Set Chrome options
+    options = Options()
+    options.add_argument("--headless")  # Run in headless mode (no GUI)
+    
+    # Provide the path to your chromedriver
+    service = Service("chromedriver.exe")  # Ensure chromedriver.exe is in your PATH or provide the full path
+    driver = webdriver.Chrome(service=service, options=options)
+    
+    try:
+        # Open the Wikipedia NASA page
+        driver.get("https://en.wikipedia.org/wiki/NASA")
+        
+        # Save screenshot of Wikipedia logo
+        save_element_screenshot(driver, (By.CSS_SELECTOR, 'img.mw-logo-icon'), 'wikipedia.png')
+        
+        # Save screenshot of NASA logo
+        save_element_screenshot(driver, (By.CSS_SELECTOR, 'img.mw-file-element'), '220px-NASA_logo.svg.png')
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        driver.quit()  # Close the browser after completion
+
+if __name__ == "__main__":
+    main()
