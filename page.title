@@ -1,64 +1,29 @@
 import requests
-import sqlite3
 
-# Function to fetch page title data from Wikipedia API
-def fetch_page_info(page_title):
-    url = f"https://en.wikipedia.org/w/api.php?action=query&titles={page_title}&prop=info&format=json"
-    response = requests.get(url)
-
-    if response.status_code == 200:
+def test_page_title():
+    page_title_url = "https://en.wikipedia.org/w/api.php?action=query&titles=NASA&format=json"
+    try:
+        response = requests.get(page_title_url)
+        response.raise_for_status()  # This will raise an exception for 4xx/5xx status codes
+        
+        # Parse the JSON response
         data = response.json()
-        # Extract page information
+        
+        # Check if 'pages' exists in the response
         pages = data.get('query', {}).get('pages', {})
-        for page_id, page_info in pages.items():
-            title = page_info.get('title', 'N/A')
-            page_id = page_info.get('pageid', 'N/A')
-            url = page_info.get('fullurl', 'N/A')
-            return title, page_id, url
-    else:
-        print(f"Error: Unable to fetch data for {page_title}")
-        return None, None, None
-
-# Function to save the page title data to SQLite database
-def save_page_info_to_db(title, page_id, url):
-    # Connect to SQLite database (or create it)
-    conn = sqlite3.connect('wikipedia_pages.db')
-    cursor = conn.cursor()
+        
+        if pages:
+            page_title = list(pages.values())[0].get('title', 'No title found')
+            print("Page Title Endpoint:")
+            print("Page Title:", page_title)
+            print("Status: Success\n")
+        else:
+            print("Page Title Endpoint:")
+            print("Error: No pages found in response\n")
     
-    # Create the table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS pages (
-            page_id INTEGER PRIMARY KEY,
-            title TEXT,
-            url TEXT
-        )
-    ''')
-    
-    # Insert the page data into the table
-    cursor.execute('''
-        INSERT OR REPLACE INTO pages (page_id, title, url)
-        VALUES (?, ?, ?)
-    ''', (page_id, title, url))
-    
-    # Commit the changes and close the connection
-    conn.commit()
-    conn.close()
+    except requests.exceptions.RequestException as e:
+        print("Page Title Endpoint:")
+        print(f"Error: {e}\n")
 
-# Main function to fetch and store page info
-def main():
-    # Define the page title you want to fetch
-    page_title = "Python_(programming_language)"  # You can change this to any Wikipedia page title
-
-    # Fetch page information from the Wikipedia API
-    title, page_id, url = fetch_page_info(page_title)
-
-    if title and page_id and url:
-        # Save the fetched data to the database
-        save_page_info_to_db(title, page_id, url)
-        print(f"Data for '{title}' saved successfully!")
-    else:
-        print("Failed to fetch or save data.")
-
-# Run the script
 if __name__ == "__main__":
-    main()
+    test_page_title()
