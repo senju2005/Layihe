@@ -1,70 +1,35 @@
 import requests
-import sqlite3
 
-# Function to fetch geosearch results from Wikipedia API
-def fetch_geosearch_data(latitude, longitude, radius=10000):
-    url = f"https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gsradius={radius}&gscoord={latitude}|{longitude}&format=json"
-    response = requests.get(url)
-
-    if response.status_code == 200:
+def test_geo_search():
+    geo_search_url = "https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=37.786971|-122.399677&gsradius=10000&format=json"
+    
+    try:
+        # Send the request to the API
+        response = requests.get(geo_search_url)
+        response.raise_for_status()  # Raise an exception for bad status codes (4xx, 5xx)
+        
+        # Parse the JSON response
         data = response.json()
-        if 'query' in data and 'geosearch' in data['query']:
-            return data['query']['geosearch']
-    else:
-        print(f"Error: Unable to fetch geosearch data for coordinates {latitude}, {longitude}")
-        return []
+        
+        # Access the 'geosearch' results safely
+        geo_search_results = data.get('query', {}).get('geosearch', [])
+        
+        if geo_search_results:
+            print("Geo Search Endpoint:")
+            print("Geo Search Results:")
+            for result in geo_search_results:
+                title = result.get('title', 'No Title')
+                lat = result.get('lat', 'No Latitude')
+                lon = result.get('lon', 'No Longitude')
+                print(f"Title: {title}, Latitude: {lat}, Longitude: {lon}")
+            print("Status: Success\n")
+        else:
+            print("Geo Search Endpoint:")
+            print("Error: No geosearch results found\n")
+    
+    except requests.exceptions.RequestException as e:
+        print("Geo Search Endpoint:")
+        print(f"Error: {e}\n")
 
-# Function to save geosearch data to SQLite database
-def save_geosearch_to_db(geosearch_results):
-    # Connect to SQLite database (or create it)
-    conn = sqlite3.connect('wikipedia_geosearch.db')
-    cursor = conn.cursor()
-
-    # Create the table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS geosearch (
-            page_id INTEGER PRIMARY KEY,
-            title TEXT,
-            latitude REAL,
-            longitude REAL,
-            url TEXT
-        )
-    ''')
-
-    # Insert the geosearch data into the table
-    for result in geosearch_results:
-        page_id = result['pageid']
-        title = result['title']
-        latitude = result['lat']
-        longitude = result['lon']
-        url = result['url']
-
-        cursor.execute('''
-            INSERT OR REPLACE INTO geosearch (page_id, title, latitude, longitude, url)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (page_id, title, latitude, longitude, url))
-
-    # Commit the changes and close the connection
-    conn.commit()
-    conn.close()
-
-# Main function to fetch and save geosearch data
-def main():
-    # Define the coordinates (Latitude, Longitude) and search radius
-    latitude = 48.8566  # Latitude of Paris
-    longitude = 2.3522  # Longitude of Paris
-    radius = 10000  # Search radius in meters (10 km)
-
-    # Fetch geosearch data from Wikipedia API
-    geosearch_results = fetch_geosearch_data(latitude, longitude, radius)
-
-    if geosearch_results:
-        # Save the fetched geosearch data to the database
-        save_geosearch_to_db(geosearch_results)
-        print(f"Geosearch data for {len(geosearch_results)} locations saved successfully!")
-    else:
-        print("No geosearch data found or failed to fetch data.")
-
-# Run the script
 if __name__ == "__main__":
-    main()
+    test_geo_search()
